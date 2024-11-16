@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ category.name }} Tasks</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+    <style>
+      /* Body background with sea shore theme */
+      body {
+        background: linear-gradient(to bottom, #92c8ff, #fef7e2);
+        font-family: Arial, sans-serif;
+        color: #333;
+      }
+      .container {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        padding: 20px;
+      }
+      h2 {
+        color: #0066cc;
+        font-weight: bold;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+      }
+      .btn-danger {
+        background-color: #ff5e57;
+        border-color: #ff5e57;
+        box-shadow: 0 4px 8px rgba(255, 94, 87, 0.4);
+      }
+      .table th {
+        background-color: #0066cc;
+        color: white;
+      }
+      .table td, .table th {
+        text-align: center;
+        vertical-align: middle;
+      }
+      .modal-content {
+        background: #f7f7f7;
+        border-radius: 10px;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+      }
+      .modal-header {
+        background: #0066cc;
+        color: white;
+      }
+      .modal-footer {
+        border-top: 1px solid #eee;
+      }
+      .btn-info {
+        background: linear-gradient(45deg, #62c5ff, #2980b9);
+        border: none;
+      }
+      .btn-info:hover {
+        background: #2980b9;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container mt-5">
+      <h2 class="text-center">{{ category.name }} Tasks</h2>
+      <div class="mb-3 text-right">
+        <a href="{% url 'logout' %}" class="btn btn-danger">Logout</a>
+      </div>
+      <table id="taskTable" class="table table-striped table-bordered">
+        <thead>
+          <tr>
+            <th>Task Name</th>
+            <th>Start Date</th>
+            <th>Time Left</th>
+            <th>
+              Priority 
+              <button class="btn btn-link text-dark" onclick="sortByPriority()">&#x25B2;</button>
+            </th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for task in tasks %}
+          <tr>
+            <td>{{ task.name }}</td>
+            <td>{{ task.start_date }}</td>
+            <td><div id="countdown_{{ task.id }}" class="countdown-timer"></div></td>
+            <td>{{ task.priority }}</td>
+            <td>
+              <button
+                type="button"
+                class="btn btn-info btn-sm"
+                data-toggle="modal"
+                data-target="#taskModal_{{ task.id }}"
+              >
+                Details
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Modals -->
+    {% for task in tasks %}
+    <div
+      class="modal fade"
+      id="taskModal_{{ task.id }}"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="taskModalLabel_{{ task.id }}"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="taskModalLabel_{{ task.id }}">
+              {{ task.name }}
+            </h5>
+            <button
+              type="button"
+              class="close"
+              data-dismiss="modal"
+              aria-label="Close"
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p><strong>Name:</strong> {{ task.name }}</p>
+            <p><strong>Category:</strong> {{ task.category.name }}</p>
+            <p><strong>Assigned to:</strong> {{ task.assigned_to.username }}</p>
+            <p><strong>Start Date:</strong> {{ task.start_date }}</p>
+            <p><strong>End Date:</strong> {{ task.end_date }}</p>
+            <p><strong>Priority:</strong> {{ task.priority }}</p>
+            <p><strong>Description:</strong> {{ task.description }}</p>
+            <p><strong>Location:</strong> {{ task.location }}</p>
+            <p><strong>Organizer:</strong> {{ task.organizer }}</p>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-dismiss="modal"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+    <!-- JavaScript to update countdown timers and sorting -->
+    <script>
+    function sortByPriority() {
+      var table, rows, switching, i, x, y, shouldSwitch;
+      table = document.getElementById("taskTable");
+      switching = true;
+      while (switching) {
+        switching = false;
+        rows = table.getElementsByTagName("tr");
+        for (i = 1; i < (rows.length - 1); i++) {
+          shouldSwitch = false;
+          x = rows[i].getElementsByTagName("td")[3]; // Index of Priority column
+          y = rows[i + 1].getElementsByTagName("td")[3];
+          if (parseInt(x.innerHTML) < parseInt(y.innerHTML)) {
+            shouldSwitch = true;
+            break;
+          }
+        }
+        if (shouldSwitch) {
+          rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+          switching = true;
+        }
+      }
+    }
+
+    // Function to update countdown timer for each task
+    function updateCountdownTimers() {
+      {% for task in tasks %}
+      // Get the start date of the task and convert it to a JavaScript Date object
+      var startDate = new Date('{{ task.start_date|date:"Y/m/d H:i:s" }}');
+      var now = new Date();
+
+      // Calculate the time difference between now and the start date
+      var timeDiff = startDate - now;
+
+      // If the task has not started yet, display the countdown timer
+      if (timeDiff > 0) {
+        var days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+        var hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        var minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+        var seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+
+        // Display the countdown timer in the format: DD:HH:MM:SS
+        document.getElementById('countdown_{{ task.id }}').innerText = days + "d " + hours + "h "
+          + minutes + "m " + seconds + "s ";
+      } else {
+        // If the task has already started, display a message indicating that it has started
+        document.getElementById('countdown_{{ task.id }}').innerText = "task has started";
+      }
+      {% endfor %}
+    }
+
+    // Call the updateCountdownTimers function every second to update the countdown timers in real-time
+    setInterval(updateCountdownTimers, 1000);
+  </script>
+
+    <!-- Bootstrap JS (Optional - for certain Bootstrap features like modals) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  </body>
+</html>

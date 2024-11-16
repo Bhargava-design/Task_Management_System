@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ category.name }} Tasks</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Arial', sans-serif;
+        background: linear-gradient(to bottom, #87CEEB, #FFFFFF); /* Sky to sand */
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .container {
+        max-width: 900px;
+        width: 100%;
+        background: #ffffff;
+        border-radius: 15px;
+        box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.3);
+        padding: 30px;
+        animation: float 4s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%, 100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+
+      h2 {
+        font-size: 28px;
+        font-weight: bold;
+        text-align: center;
+        color: #2c3e50;
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 8px 12px;
+        font-size: 16px;
+        border-radius: 5px;
+        text-decoration: none;
+        margin-right: 5px;
+        transition: transform 0.3s ease;
+      }
+
+      .btn-primary {
+        background: linear-gradient(to right, #1e90ff, #00bcd4);
+        color: white;
+        border: none;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 3px 6px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      .btn-secondary {
+        background: linear-gradient(to right, #6c757d, #495057);
+        color: white;
+        border: none;
+      }
+
+      .btn-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 3px 6px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      .btn-danger {
+        background: linear-gradient(to right, #ff6b6b, #ff4757);
+        color: white;
+        border: none;
+      }
+
+      .btn-danger:hover {
+        transform: translateY(-2px);
+        box-shadow: 3px 6px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      .btn-info {
+        background: linear-gradient(to right, #17a2b8, #1e90ff);
+        color: white;
+        border: none;
+      }
+
+      .btn-info:hover {
+        transform: translateY(-2px);
+        box-shadow: 3px 6px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      .btn-sm {
+        font-size: 14px;
+        padding: 5px 8px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+
+      table th, table td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+
+      table th {
+        background: #f4f4f4;
+        color: #2c3e50;
+        font-weight: bold;
+      }
+
+      .modal-content {
+        border-radius: 10px;
+        box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.2);
+      }
+
+      .modal-header {
+        background: linear-gradient(to right, #1e90ff, #00bcd4);
+        color: white;
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
+      }
+
+      .modal-footer button {
+        border-radius: 5px;
+        transition: transform 0.3s ease;
+      }
+
+      .modal-footer button:hover {
+        transform: translateY(-2px);
+        box-shadow: 3px 6px 12px rgba(0, 0, 0, 0.3);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container mt-5">
+      <h2>{{ category.name }} Tasks</h2>
+      <br />
+      <div class="mb-3">
+        <a href="{% url 'create_task' %}" class="btn btn-primary">Add New Task</a>
+        <a href="{% url 'category_list' %}" class="btn btn-secondary ml-2">Back to Categories</a>
+      </div>
+      <table id="taskTable" class="table">
+        <thead>
+          <tr>
+            <th>Task Name</th>
+            <th>Assigned To</th>
+            <th>Start Date</th>
+            <th>Time Left</th>
+            <th>
+              Priority <button class="btn btn-link" onclick="sortByPriority()">&#x25B2;</button>
+            </th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for task in tasks %}
+            <tr>
+              <td>{{ task.name }}</td>
+              <td>{{ task.assigned_to.username }}</td>
+              <td>{{ task.start_date }}</td>
+              <td>
+                <div id="countdown_{{ task.id }}" class="countdown-timer"></div>
+              </td>
+              <td>{{ task.priority }}</td>
+              <td>
+                <a href="{% url 'update_task' task.id %}" class="btn btn-primary btn-sm">Update</a>
+                <form method="post" action="{% url 'delete_task' task.id %}" style="display: inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </form>
+                <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#taskModal_{{ task.id }}">Details</button>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% for task in tasks %}
+      <div class="modal fade" id="taskModal_{{ task.id }}" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">{{ task.name }}</h5>
+              <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+              <p><strong>Name:</strong> {{ task.name }}</p>
+              <p><strong>Category:</strong> {{ task.category.name }}</p>
+              <p><strong>Assigned to:</strong> {{ task.assigned_to.username }}</p>
+              <p><strong>Start Date:</strong> {{ task.start_date }}</p>
+              <p><strong>End Date:</strong> {{ task.end_date }}</p>
+              <p><strong>Priority:</strong> {{ task.priority }}</p>
+              <p><strong>Description:</strong> {{ task.description }}</p>
+              <p><strong>Location:</strong> {{ task.location }}</p>
+              <p><strong>Organizer:</strong> {{ task.organizer }}</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+
+    <!-- JavaScript to update countdown timers and sorting -->
+    <script>
+    function sortByPriority() {
+      var table, rows, switching, i, x, y, shouldSwitch;
+      table = document.getElementById("taskTable");
+      switching = true;
+      while (switching) {
+        switching = false;
+        rows = table.getElementsByTagName("tr");
+        for (i = 1; i < (rows.length - 1); i++) {
+          shouldSwitch = false;
+          x = rows[i].getElementsByTagName("td")[3]; // Index of Priority column
+          y = rows[i + 1].getElementsByTagName("td")[3];
+          if (parseInt(x.innerHTML) < parseInt(y.innerHTML)) {
+            shouldSwitch = true;
+            break;
+          }
+        }
+        if (shouldSwitch) {
+          rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+          switching = true;
+        }
+      }
+    }
+
+    // Function to update countdown timer for each task
+    function updateCountdownTimers() {
+      {% for task in tasks %}
+      // Get the start date of the task and convert it to a JavaScript Date object
+      var startDate = new Date('{{ task.start_date|date:"Y/m/d H:i:s" }}');
+      var now = new Date();
+
+      // Calculate the time difference between now and the start date
+      var timeDiff = startDate - now;
+
+      // If the task has not started yet, display the countdown timer
+      if (timeDiff > 0) {
+        var days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+        var hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        var minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+        var seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+
+        // Display the countdown timer in the format: DD:HH:MM:SS
+        document.getElementById('countdown_{{ task.id }}').innerText = days + "d " + hours + "h "
+          + minutes + "m " + seconds + "s ";
+      } else {
+        // If the task has already started, display a message indicating that it has started
+        document.getElementById('countdown_{{ task.id }}').innerText = "task has started";
+      }
+      {% endfor %}
+    }
+
+    // Call the updateCountdownTimers function every second to update the countdown timers in real-time
+    setInterval(updateCountdownTimers, 1000);
+  </script>
+
+    <!-- Bootstrap JS (Optional - for certain Bootstrap features like modals) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  </body>
+</html>

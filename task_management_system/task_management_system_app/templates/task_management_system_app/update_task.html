@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Update Task</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+    <style>
+      /* Body background with sea shore theme */
+      body {
+        background: linear-gradient(to bottom, #92c8ff, #fef7e2);
+        font-family: Arial, sans-serif;
+        color: #333;
+      }
+
+      .container {
+        background: #fff;
+        border-radius: 10px;
+        padding: 30px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      h2 {
+        color: #0066cc;
+        font-weight: bold;
+        text-align: center;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+      }
+
+      .form-group label {
+        color: #333;
+      }
+
+      .btn-primary {
+        background-color: #0066cc;
+        border-color: #0066cc;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        font-weight: bold;
+      }
+
+      .btn-primary:hover {
+        background-color: #004c99;
+        border-color: #004c99;
+      }
+
+      .form-control {
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        transition: border-color 0.3s;
+      }
+
+      .form-control:focus {
+        border-color: #0066cc;
+        box-shadow: 0 0 5px rgba(0, 102, 204, 0.5);
+      }
+
+      .form-group input, .form-group textarea {
+        margin-bottom: 15px;
+      }
+
+      .small.text-danger {
+        font-size: 0.875rem;
+        color: #d9534f;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container mt-5">
+      <h2>Update Task</h2>
+      <br />
+      <form method="post" id="updatetaskForm">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="name">Task Name:</label>
+          <input
+            type="text"
+            class="form-control"
+            id="name"
+            name="name"
+            value="{{ task.name }}"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="start_date">Start Date:</label>
+          <input
+            type="datetime-local"
+            class="form-control"
+            id="start_date"
+            name="start_date"
+            value="{{ task.start_date }}"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="end_date">End Date:</label>
+          <input
+            type="datetime-local"
+            class="form-control"
+            id="end_date"
+            name="end_date"
+            value="{{ task.end_date }}"
+            required
+          />
+          <small id="end_date_error" class="form-text text-danger"></small>
+        </div>
+        <div class="form-group">
+          <label for="assigned_to">Assigned To:</label>
+          <select class="form-control" id="assigned_to" name="assigned_to" required>
+            <option value="">Select User</option>
+            {% for user in users %}
+              <option value="{{ user.id }}" {% if task.assigned_to.id == user.id %}selected{% endif %}>
+                {{ user.username }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="priority">Priority:</label>
+          <input
+            type="number"
+            class="form-control"
+            id="priority"
+            name="priority"
+            value="{{ task.priority }}"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="description">Description:</label>
+          <textarea
+            class="form-control"
+            id="description"
+            name="description"
+            required
+          >{{ task.description }}</textarea>
+        </div>
+        <div class="form-group">
+          <label for="location">Location:</label>
+          <input
+            type="text"
+            class="form-control"
+            id="location"
+            name="location"
+            value="{{ task.location }}"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="organizer">Organizer:</label>
+          <input
+            type="text"
+            class="form-control"
+            id="organizer"
+            name="organizer"
+            value="{{ task.organizer }}"
+            required
+          />
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Save Task</button>
+      </form>
+
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+      // Function to validate end date is after start date
+      function validateEndDate() {
+        var startDate = new Date(document.getElementById('start_date').value)
+        var endDate = new Date(document.getElementById('end_date').value)
+        if (endDate <= startDate) {
+          document.getElementById('end_date_error').innerText = 'End date must be after start date'
+          return false
+        } else {
+          document.getElementById('end_date_error').innerText = ''
+          return true
+        }
+      }
+      
+      // Add task listener to form submission for validation
+      document.getElementById('updatetaskForm').addtaskListener('submit', function (task) {
+        if (!validateEndDate()) {
+          task.prtaskDefault() // Prtask form submission if validation fails
+        }
+      })
+    </script>
+  </body>
+</html>
