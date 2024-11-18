@@ -76,8 +76,12 @@ WSGI_APPLICATION = 'task_management_system.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'hello',  # Name of your MySQL database
+        'USER': 'root',  # MySQL username
+        'PASSWORD': 'admin',  # MySQL password
+        'HOST': 'localhost',  # MySQL server host (or an IP address)
+        'PORT': '3306',  # MySQL server port
     }
 }
 

@@ -8,12 +8,12 @@ from .models import Category, Task
 from django.shortcuts import render, redirect
 from .models import Category
 from .models import Task
+from django import forms
 from django.urls import reverse
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.admin.views.decorators import staff_member_required
-
 from django.contrib.auth.decorators import login_required
 
 
@@ -26,16 +26,16 @@ admin_required = user_passes_test(lambda user: user.is_superuser)
 
 def user_login(request):
     if request.method == 'POST':
-        form = LoginForm(request, request.POST)
+        form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
             login(request, user)
-            if user.is_superuser:  # If the user is an admin
-                return redirect('category_list')
-            else:  # If the user is a normal user
-                return redirect('user_tasks_list')
+            if user.is_superuser:
+                return redirect('category_list')  # Redirect admin to category list
+            else:
+                return redirect('user_tasks_list')  # Redirect normal user to tasks list
     else:
-        form = LoginForm()
+        form = AuthenticationForm()
     return render(request, 'task_management_system_app/login.html', {'form': form})
 
 
@@ -44,11 +44,39 @@ def user_tasks_list(request):
     tasks = request.user.tasks.all()
     return render(request, 'task_management_system_app/user_tasks_list.html', {'tasks': tasks})
 
-
 class RegistrationForm(UserCreationForm):
+    first_name = forms.CharField(max_length=150, required=True)
+    last_name = forms.CharField(max_length=150, required=True)
+    email = forms.EmailField(required=True)
+    is_superuser = forms.BooleanField(
+        required=False, label="Register as Superuser"
+    )  # Optional field for superuser registration
+    is_staff = forms.BooleanField(required=False, label="Staff Member")
+
     class Meta:
         model = User
-        fields = ['username', 'password1', 'password2']
+        fields = [
+            'username',
+            'password1',
+            'password2',
+            'first_name',
+            'last_name',
+            'email',
+            'is_superuser',
+            'is_staff',
+        ]
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.first_name = self.cleaned_data['first_name']
+        user.last_name = self.cleaned_data['last_name']
+        user.email = self.cleaned_data['email']
+        user.is_superuser = self.cleaned_data.get('is_superuser', False)
+        user.is_staff = self.cleaned_data.get('is_staff', False)
+        if commit:
+            user.save()
+        return user
+
 
 
 class LoginForm(AuthenticationForm):
@@ -61,15 +89,17 @@ def register(request):
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)  # Don't save immediately
-            user.set_password(form.cleaned_data['password'])  # Hash the password
-            user.save()  # Now save the user
-            login(request, user)  # Log the user in after successful registration
-            return redirect('login')  # Redirect to the login page
+            user = form.save()  # Save the user with all fields
+            login(request, user)  # Log the user in automatically
+            if user.is_superuser:  # Redirect superusers to admin page
+                return redirect('category_list')  # Admin landing page
+            else:
+                return redirect('user_tasks_list')  # Normal user landing page
     else:
         form = RegistrationForm()
 
     return render(request, 'task_management_system_app/register.html', {'form': form})
+
 
 
 
@@ -187,9 +217,13 @@ def category_tasks(request, category_id):
 def task_chart(request):
     categories = Category.objects.all()
     pending_counts = {}
+    
     for category in categories:
+        # Modify the query to filter by both category and status
         pending_counts[category.name] = Task.objects.filter(
             category=category,
-            start_date__gt=timezone.now()
+            priority = 3,  # Assuming status field is used for task status
+            start_date__gt=timezone.now()  # If you want only future tasks
         ).count()
+    
     return render(request, 'task_management_system_app/task_chart.html', {'pending_counts': pending_counts})
