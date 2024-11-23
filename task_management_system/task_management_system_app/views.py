@@ -1,20 +1,23 @@
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-from django.shortcuts import render
-from django.shortcuts import render, get_object_or_404
 from django.contrib import messages
+from .models import Category, Task, RegistrationForm
+from django.shortcuts import render, redirect, get_object_or_404
 from .models import Category, Task
-from django.shortcuts import render, redirect
-from .models import Category
-from .models import Task
-from django import forms
+from rest_framework import viewsets
+from .serializers import CategorySerializer, TaskSerializer
 from django.urls import reverse
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
+from rest_framework.authtoken.views import obtain_auth_token
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from .serializers import UserSerializer
 
 
 def is_admin(user):
@@ -44,69 +47,23 @@ def user_tasks_list(request):
     tasks = request.user.tasks.all()
     return render(request, 'task_management_system_app/user_tasks_list.html', {'tasks': tasks})
 
-class RegistrationForm(UserCreationForm):
-    first_name = forms.CharField(max_length=150, required=True)
-    last_name = forms.CharField(max_length=150, required=True)
-    email = forms.EmailField(required=True)
-    is_superuser = forms.BooleanField(
-        required=False, label="Register as Superuser"
-    )  # Optional field for superuser registration
-    is_staff = forms.BooleanField(required=False, label="Staff Member")
-
-    class Meta:
-        model = User
-        fields = [
-            'username',
-            'password1',
-            'password2',
-            'first_name',
-            'last_name',
-            'email',
-            'is_superuser',
-            'is_staff',
-        ]
-
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        user.first_name = self.cleaned_data['first_name']
-        user.last_name = self.cleaned_data['last_name']
-        user.email = self.cleaned_data['email']
-        user.is_superuser = self.cleaned_data.get('is_superuser', False)
-        user.is_staff = self.cleaned_data.get('is_staff', False)
-        if commit:
-            user.save()
-        return user
-
-
-
 class LoginForm(AuthenticationForm):
     class Meta:
         model = User
         fields = ['username', 'password']
 
-
+@api_view(['POST'])
+@permission_classes([AllowAny])
 def register(request):
-    if request.method == 'POST':
-        form = RegistrationForm(request.POST)
-        if form.is_valid():
-            user = form.save()  # Save the user with all fields
-            login(request, user)  # Log the user in automatically
-            if user.is_superuser:  # Redirect superusers to admin page
-                return redirect('category_list')  # Admin landing page
-            else:
-                return redirect('user_tasks_list')  # Normal user landing page
-    else:
-        form = RegistrationForm()
-
-    return render(request, 'task_management_system_app/register.html', {'form': form})
-
-
-
+    serializer = UserSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=201)
+    return Response(serializer.errors, status=400)
 
 def LogoutPage(request):
     logout(request)
     return redirect("login")
-
 
 @login_required
 @admin_required
@@ -216,7 +173,11 @@ def category_tasks(request, category_id):
 @admin_required
 def task_chart(request):
     categories = Category.objects.all()
-    pending_counts = {}
+    pending_counts = {
+        'Category 1': 10,
+        'Category 2': 20,
+        'Category 3': 30,
+    }
     
     for category in categories:
         # Modify the query to filter by both category and status
@@ -227,3 +188,11 @@ def task_chart(request):
         ).count()
     
     return render(request, 'task_management_system_app/task_chart.html', {'pending_counts': pending_counts})
+
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+
+class TaskViewSet(viewsets.ModelViewSet):
+    queryset = Task.objects.all()
+    serializer_class = TaskSerializer

@@ -1,12 +1,12 @@
 from django.contrib import admin
-from django.urls import path
 from task_management_system_app import views
-from django.contrib import admin
 from django.urls import path, include
 from django.contrib.auth.views import LogoutView
 
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/', include('task_management_system_app.urls')),
     path('user/', views.user_tasks_list, name='user_tasks_list'),
     path('accounts/', include('django.contrib.auth.urls')),
     path('register/', views.register, name='register'),
